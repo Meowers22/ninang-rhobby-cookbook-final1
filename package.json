@@ -1,0 +1,42 @@
+{
+  "name": "ninang-rhobby-cookbook",
+  "version": "1.0.0",
+  "description": "A heartwarming family-style recipe-sharing web application",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^2.1.4",
+    "concurrently": "^7.6.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.2.0",
+    "postcss": "^8.4.18",
+    "autoprefixer": "^10.4.12"
+  },
+  "scripts": {
+    "start": "node scripts/start.js",
+    "start:backend": "cd backend && python manage.py runserver 0.0.0.0:8000",
+    "start:frontend": "BROWSER=none HOST=0.0.0.0 PORT=3000 react-scripts start",
+    "start:dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": ["react-app", "react-app/jest"]
+  },
+  "browserslist": {
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+  },
+  "keywords": ["recipe", "cookbook", "filipino", "family", "food", "react", "django"],
+  "author": "Ninang Rhobby's Development Team",
+  "license": "MIT"
+}
