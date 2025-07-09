@@ -17,6 +17,7 @@ const RecipesPage = () => {
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all") // all, signature, pending, approved, declined
+  const [searchTerm, setSearchTerm] = useState("")
   const { user } = useAuth()
   const { lastMessage } = useWebSocket()
   const navigate = useNavigate()
@@ -208,20 +209,39 @@ const RecipesPage = () => {
   /**
    * Filter recipes based on selected filter
    */
+  // Filter recipes by search term and filter
   const filteredRecipes = recipes.filter((recipe) => {
+    // Filter by type
+    let matchesFilter = true;
     switch (filter) {
       case "signature":
-        return recipe.is_signature
+        matchesFilter = recipe.is_signature;
+        break;
       case "pending":
-        return recipe.status === "pending"
+        matchesFilter = recipe.status === "pending";
+        break;
       case "approved":
-        return recipe.status === "approved"
+        matchesFilter = recipe.status === "approved";
+        break;
       case "declined":
-        return recipe.status === "declined"
+        matchesFilter = recipe.status === "declined";
+        break;
       default:
-        return true
+        matchesFilter = true;
     }
+    // Filter by search
+    const matchesSearch = !searchTerm.trim() ||
+      recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (recipe.description && recipe.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesFilter && matchesSearch;
   })
+
+  // Count recipes for each filter
+  const countAll = recipes.length;
+  const countSignature = recipes.filter((r) => r.is_signature).length;
+  const countApproved = recipes.filter((r) => r.status === "approved").length;
+  const countPending = recipes.filter((r) => r.status === "pending").length;
+  const countDeclined = recipes.filter((r) => r.status === "declined").length;
 
   // ==================== LOADING STATE ====================
 
@@ -241,12 +261,27 @@ const RecipesPage = () => {
   return (
     <div className="fade-in">
       {/* Page Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-playfair font-bold text-gray-800 mb-2">All Recipes 📚</h1>
           <p className="text-gray-600">Discover delicious recipes from our community, mga anak!</p>
         </div>
-
+        <div className="flex-1 flex justify-end min-w-[250px] max-w-md relative">
+          <input
+            type="text"
+            placeholder="Search recipes..."
+            className="w-full px-6 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blush-pink focus:border-transparent shadow-sm text-lg font-playfair transition-all pr-12"
+            style={{ fontFamily: 'inherit' }}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            autoComplete="off"
+          />
+          <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+            </svg>
+          </span>
+        </div>
         {/* Create Recipe Button - Only for logged-in users */}
         {user && (
           <Link
@@ -266,7 +301,7 @@ const RecipesPage = () => {
             filter === "all" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
           }`}
         >
-          All Recipes ({recipes.length})
+          All Recipes ({countAll})
         </button>
 
         <button
@@ -275,7 +310,7 @@ const RecipesPage = () => {
             filter === "signature" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
           }`}
         >
-          🌟 Signature Dishes ({recipes.filter((r) => r.is_signature).length})
+          🌟 Signature Dishes ({countSignature})
         </button>
 
         <button
@@ -284,73 +319,70 @@ const RecipesPage = () => {
             filter === "approved" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
           }`}
         >
-          ✅ Approved ({recipes.filter((r) => r.status === "approved").length})
+          ✅ Approved ({countApproved})
         </button>
 
-        {/* Admin/Super Admin only filters */}
-        {user && (user.role === "admin" || user.role === "super_admin") && (
-          <>
-            <button
-              onClick={() => setFilter("pending")}
-              className={`px-4 py-2 rounded-full transition-colors ${
-                filter === "pending" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              ⏳ Pending ({recipes.filter((r) => r.status === "pending").length})
-            </button>
+        <button
+          onClick={() => setFilter("pending")}
+          className={`px-4 py-2 rounded-full transition-colors ${
+            filter === "pending" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          ⏳ Pending ({countPending})
+        </button>
 
-            <button
-              onClick={() => setFilter("declined")}
-              className={`px-4 py-2 rounded-full transition-colors ${
-                filter === "declined" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              ❌ Declined ({recipes.filter((r) => r.status === "declined").length})
-            </button>
-          </>
+        {/* Admin/Super Admin only filter for Declined */}
+        {user && (user.role === "admin" || user.role === "super_admin") && (
+          <button
+            onClick={() => setFilter("declined")}
+            className={`px-4 py-2 rounded-full transition-colors ${
+              filter === "declined" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            ❌ Declined ({countDeclined})
+          </button>
         )}
       </div>
 
-      {/* Recipes Grid */}
-      {filteredRecipes.length > 0 ? (
+      {/* Recipe List */}
+      {filter === "pending" && user && (user.role === "admin" || user.role === "super_admin") ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRecipes.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              showActions={true}
-              onApprove={handleApprove}
-              onDecline={handleDecline}
-              onToggleSignature={handleToggleSignature}
-              onEdit={handleEdit}
-              onPhotoUpdate={handlePhotoUpdate}
-              onRefresh={fetchRecipes}
-              onDelete={handleDelete}
-            />
-          ))}
+          {filteredRecipes.length > 0 ? (
+            filteredRecipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onToggleSignature={handleToggleSignature}
+                showActions={true}
+                onEdit={handleEdit}
+                onApprove={handleApprove}
+                onDecline={handleDecline}
+                onPhotoUpdate={handlePhotoUpdate}
+                onDelete={handleDelete}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-400 italic py-12">No pending recipes found.</div>
+          )}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">🍽️</div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">No recipes found</h3>
-          <p className="text-gray-600 mb-6">
-            {filter === "signature"
-              ? "No signature dishes yet. Be the first to create one!"
-              : filter === "pending"
-                ? "No pending recipes to review."
-                : filter === "approved"
-                  ? "No approved recipes yet."
-                  : filter === "declined"
-                    ? "No declined recipes."
-                    : "No recipes available. Start sharing your favorites!"}
-          </p>
-          {user && (
-            <Link
-              to="/recipes/create"
-              className="bg-blush-pink text-white px-6 py-3 rounded-full hover:bg-blush-pink/80 transition-colors inline-block"
-            >
-              Share Your First Recipe! 🌟
-            </Link>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRecipes.length > 0 ? (
+            filteredRecipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onToggleSignature={handleToggleSignature}
+                showActions={true}
+                onEdit={handleEdit}
+                onApprove={handleApprove}
+                onDecline={handleDecline}
+                onPhotoUpdate={handlePhotoUpdate}
+                onDelete={handleDelete}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-400 italic py-12">No recipes found.</div>
           )}
         </div>
       )}

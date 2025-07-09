@@ -10,6 +10,7 @@ import baseUrl from "../utils/baseUrl"
 const HomePage = () => {
   const [homepageData, setHomepageData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
   const { lastMessage } = useWebSocket()
 
   useEffect(() => {
@@ -43,6 +44,23 @@ const HomePage = () => {
       homepage_content: updatedContent,
     })
   }
+
+  // Combine all recipes for search suggestions
+  const allRecipes = [
+    ...(homepageData?.top_dishes || []),
+    ...(homepageData?.signature_dishes || []),
+    ...(homepageData?.recent_recipes || []),
+    ...(homepageData?.hall_of_fame ? [homepageData.hall_of_fame] : []),
+  ];
+  // Remove duplicates by id
+  const uniqueRecipes = Array.from(new Map(allRecipes.map(r => [r.id, r])).values());
+  // Filter for search suggestions
+  const searchResults = searchTerm.trim()
+    ? uniqueRecipes.filter(recipe =>
+        recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (recipe.description && recipe.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : [];
 
   if (loading) {
     return (
@@ -82,6 +100,47 @@ const HomePage = () => {
 
       {/* Homepage Editor for Super Admins */}
       <HomepageEditor homepageContent={homepageData?.homepage_content} onUpdate={handleHomepageUpdate} />
+
+      {/* Search Bar - above Hall of Fame */}
+      <section className="mb-8 relative">
+        <div className="flex justify-center relative w-full md:w-1/2 mx-auto">
+          <input
+            type="text"
+            placeholder="Search recipes..."
+            className="w-full px-6 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blush-pink focus:border-transparent shadow-sm text-lg font-playfair transition-all pr-12"
+            style={{ fontFamily: 'inherit' }}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            autoComplete="off"
+          />
+          <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+            </svg>
+          </span>
+        </div>
+        {searchTerm && searchResults.length > 0 && (
+          <ul className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-full md:w-1/2 bg-white border border-gray-200 rounded-2xl shadow-lg z-20 max-h-72 overflow-y-auto">
+            {searchResults.map(recipe => (
+              <li key={recipe.id}>
+                <Link
+                  to={`/recipes/${recipe.id}`}
+                  className="block px-6 py-3 hover:bg-blush-pink/10 transition-colors cursor-pointer text-gray-800 font-playfair text-lg border-b last:border-b-0 border-gray-100"
+                  onClick={() => setSearchTerm("")}
+                >
+                  {recipe.title}
+                  {recipe.is_signature && <span className="ml-2 text-yellow-500">🌟</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {searchTerm && searchResults.length === 0 && (
+          <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-full md:w-1/2 bg-white border border-gray-200 rounded-2xl shadow-lg z-20 px-6 py-3 text-gray-400 text-center font-playfair">
+            No recipes found.
+          </div>
+        )}
+      </section>
 
       {/* Hall of Fame */}
       {homepageData?.hall_of_fame && (

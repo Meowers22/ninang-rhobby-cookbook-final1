@@ -212,13 +212,13 @@ const RecipeCard = ({
           👀 View Recipe
         </Link>
 
-        {/* Edit Button - Only for allowed roles/owners */}
-        {showActions && canEdit && (
+        {/* Edit Button - Only for allowed roles/owners, and always for declined recipes if owner */}
+        {showActions && (canEdit || (user && user.role === "user" && recipe.status === "declined" && recipe.author.id === user.id)) && (
           <button
             onClick={() => onEdit && onEdit(recipe.id)}
             className="bg-lavender text-gray-700 px-3 py-2 rounded-full text-sm hover:bg-lavender/80 transition-colors"
           >
-            ✏️ Edit
+            ✏️ {recipe.status === "declined" ? "Resubmit" : "Edit"}
           </button>
         )}
 
@@ -264,8 +264,17 @@ const RecipeCard = ({
           </>
         )}
 
-        {/* Delete Button - Only for allowed roles/owners */}
-        {canDelete && onDelete && (
+        {/* Delete Button - Only for allowed roles/owners, and always for declined recipes if owner */}
+        {(canDelete && onDelete && (recipe.status !== "declined" || (user && recipe.author.id === user.id))) && (
+          <button
+            onClick={() => onDelete(recipe.id)}
+            className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm hover:bg-red-200 transition-colors mt-2"
+          >
+            🗑️ Delete
+          </button>
+        )}
+        {/* Always show delete for declined recipes to the owner, even if not admin */}
+        {recipe.status === "declined" && user && recipe.author.id === user.id && onDelete && !canDelete && (
           <button
             onClick={() => onDelete(recipe.id)}
             className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm hover:bg-red-200 transition-colors mt-2"

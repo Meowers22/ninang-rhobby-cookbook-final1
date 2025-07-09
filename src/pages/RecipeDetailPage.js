@@ -198,9 +198,16 @@ const RecipeDetailPage = () => {
         {recipe.image && (
           <div className="mb-8">
             <img
-              src={`${baseUrl}${recipe.image}`}
+              src={
+                recipe.image.startsWith('http')
+                  ? recipe.image
+                  : recipe.image.startsWith('/')
+                    ? `${baseUrl}${recipe.image}`
+                    : `${baseUrl}/${recipe.image}`
+              }
               alt={recipe.title}
               className="w-full h-64 md:h-96 object-cover rounded-2xl"
+              onError={e => { e.target.style.display = 'none'; }}
             />
           </div>
         )}
@@ -287,10 +294,10 @@ const RecipeDetailPage = () => {
                   <button
                     onClick={async () => {
                       try {
-                        const response = await fetch(`/api/recipes/${id}/signature/`, {
+                        const response = await fetch(`${baseUrl}/api/recipes/${id}/signature/`, {
                           method: "POST",
                           headers: {
-                            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+                            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
                           },
                         });
                         if (response.ok) {

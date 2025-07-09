@@ -50,6 +50,8 @@ const EditRecipePage = () => {
           steps: recipe.steps,
           servings: recipe.servings,
           image: null,
+          status: recipe.status, // Add status to formData
+          author: recipe.author, // Add author for permission checks
         })
         setCurrentImage(recipe.image)
       } else {
@@ -93,19 +95,24 @@ const EditRecipePage = () => {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSaving(true)
-    setErrors({})
+    e.preventDefault();
+    setSaving(true);
+    setErrors({});
 
-    const submitData = new FormData()
-    submitData.append("title", formData.title)
-    submitData.append("description", formData.description)
-    submitData.append("ingredients", JSON.stringify(formData.ingredients.filter((ing) => ing.trim())))
-    submitData.append("steps", formData.steps)
-    submitData.append("servings", formData.servings)
+    // If resubmitting a declined recipe, set status to 'pending'
+    const isResubmit = formData.status === "declined" && user && formData.author && formData.author.id === user.id;
 
+    const submitData = new FormData();
+    submitData.append("title", formData.title);
+    submitData.append("description", formData.description);
+    submitData.append("ingredients", JSON.stringify(formData.ingredients.filter((ing) => ing.trim())));
+    submitData.append("steps", formData.steps);
+    submitData.append("servings", formData.servings);
     if (formData.image) {
-      submitData.append("image", formData.image)
+      submitData.append("image", formData.image);
+    }
+    if (isResubmit) {
+      submitData.append("status", "pending");
     }
 
     try {
@@ -115,24 +122,25 @@ const EditRecipePage = () => {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
         body: submitData,
-      })
+      });
 
       if (response.ok) {
-        navigate(`/recipes/${id}`)
+        navigate(`/recipes/${id}`);
       } else {
-        const errorData = await response.json()
-        setErrors(errorData)
+        const errorData = await response.json();
+        setErrors(errorData);
       }
     } catch (error) {
-      console.error("Error updating recipe:", error)
-      setErrors({ general: "Failed to update recipe. Please try again." })
+      console.error("Error updating recipe:", error);
+      setErrors({ general: "Failed to update recipe. Please try again." });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const canDelete = user && (user.role === "super_admin" || user.role === "admin")
-  const canToggleSignature = user && (user.role === "super_admin" || user.role === "admin" || recipe?.author?.id === user.id);
+  // Use formData for author check since recipe is not in scope here
+  const canToggleSignature = user && (user.role === "super_admin" || user.role === "admin" || formData?.author?.id === user.id);
   const [isSignature, setIsSignature] = useState(false);
 
   useEffect(() => {
@@ -327,7 +335,7 @@ const EditRecipePage = () => {
           </div>
 
           {/* Submit Button */}
-          <div className="text-center">
+          <div className="text-center flex flex-col gap-3">
             <button
               type="submit"
               disabled={saving}
@@ -335,6 +343,17 @@ const EditRecipePage = () => {
             >
               {saving ? "Updating Recipe..." : "Update Recipe! ✨"}
             </button>
+            {/* Resubmit Button for Declined Recipes (owner only) */}
+            {formData.status === "declined" && user && formData.author && formData.author.id === user.id && (
+              <button
+                type="submit"
+                disabled={saving}
+                style={{ marginTop: 8 }}
+                className="bg-lavender text-gray-700 px-8 py-3 rounded-full hover:bg-lavender/80 transition-colors disabled:opacity-50 border border-lavender"
+              >
+                {saving ? "Resubmitting..." : "Resubmit for Approval"}
+              </button>
+            )}
           </div>
         </form>
 
