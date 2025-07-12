@@ -189,16 +189,7 @@ const EditRecipePage = () => {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center">
-          <div className="text-6xl mb-4">✏️</div>
-          <p className="text-gray-600">Loading recipe...</p>
-        </div>
-      </div>
-    )
-  }
+  
 
   return (
     <div className="max-w-2xl mx-auto fade-in">
@@ -308,15 +299,15 @@ const EditRecipePage = () => {
           </div>
 
           {/* Current Image */}
-          {currentImage && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Current Photo</label>
-              <img
-                src={`${baseUrl}${currentImage}`}
-                alt="Current recipe"
-                className="w-32 h-32 object-cover rounded-xl"
-              />
-            </div>
+          {currentImage && typeof currentImage === 'string' && currentImage.trim() !== '' && (
+          <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Current Photo</label>
+          <img
+          src={currentImage.startsWith('http') ? currentImage : `${baseUrl}${currentImage}`}
+          alt="Current recipe"
+          className="w-32 h-32 object-cover rounded-xl"
+          />
+          </div>
           )}
 
           {/* New Image */}

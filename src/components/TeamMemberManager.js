@@ -7,10 +7,12 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "../contexts/AuthContext"
+import { useWebSocket } from "../contexts/WebSocketContext"
 import baseUrl from "../utils/baseUrl"
 
 const TeamMemberManager = () => {
   const { user } = useAuth()
+  const { lastMessage } = useWebSocket()
   const [teamMembers, setTeamMembers] = useState([])
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -34,6 +36,13 @@ const TeamMemberManager = () => {
     }
     fetchTeamMembers()
   }, [user])
+
+  // Real-time update: refetch team members on WebSocket message
+  useEffect(() => {
+    if (lastMessage && user && user.role === "super_admin") {
+      fetchTeamMembers()
+    }
+  }, [lastMessage, user])
 
   /**
    * Fetch all team members (Super Admins)

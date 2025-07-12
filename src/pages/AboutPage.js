@@ -286,7 +286,7 @@ const AboutPage = () => {
               📧 Email Us
             </a>
             <a
-              href="https://github.com/ninang-rhobby-cookbook"
+              href="https://github.com/Meowers22/ninang-rhobby-cookbook-final1"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-gray-800 text-white px-6 py-3 rounded-full hover:bg-gray-700 transition-colors"

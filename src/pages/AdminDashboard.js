@@ -1,8 +1,3 @@
-/**
- * Complete Admin Dashboard Component
- * Comprehensive management interface for Admins and Super Admins
- * Handles recipe approval, user management, and system administration
- */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -27,6 +22,21 @@ const AdminDashboard = () => {
     github_link: "",
     role: "user",
   })
+  // Add User Inline Form State (TeamMemberManager style)
+  const [addingUser, setAddingUser] = useState(false)
+  const [addUserForm, setAddUserForm] = useState({
+    first_name: "",
+    last_name: "",
+    username: "",
+    email: "",
+    password: "",
+    bio: "",
+    github_link: "",
+    profile_image: null,
+    role: "user",
+  })
+  const [addUserError, setAddUserError] = useState("")
+  const [addUserLoading, setAddUserLoading] = useState(false)
 
   const { user } = useAuth()
   const { lastMessage } = useWebSocket()
@@ -503,6 +513,212 @@ const AdminDashboard = () => {
       {activeTab === "users" && user.role === "super_admin" && (
         <div className="glass-card rounded-2xl p-6">
           <h2 className="text-2xl font-playfair font-bold text-gray-800 mb-6">👥 User Management</h2>
+
+          {!addingUser && !editingUserId && (
+            <button
+              onClick={() => {
+                setAddUserForm({
+                  first_name: "",
+                  last_name: "",
+                  username: "",
+                  email: "",
+                  password: "",
+                  bio: "",
+                  github_link: "",
+                  profile_image: null,
+                  role: "user",
+                });
+                setAddingUser(true);
+                setAddUserError("");
+              }}
+              className="bg-green-100 text-green-800 px-4 py-2 rounded-full hover:bg-green-200 transition-colors"
+            >
+              ➕ Add New User
+            </button>
+          )}
+
+          {/* Add User Form */}
+          {addingUser && (
+            <div className="glass-card rounded-2xl p-6 mb-6">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">Add New User</h4>
+              {addUserError && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-6">{addUserError}</div>
+              )}
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setAddUserLoading(true);
+                  setAddUserError("");
+                  const submitData = new FormData();
+                  Object.keys(addUserForm).forEach((key) => {
+                    if (key === "profile_image" && addUserForm[key]) {
+                      submitData.append(key, addUserForm[key]);
+                    } else if (key !== "profile_image" && addUserForm[key] !== null) {
+                      submitData.append(key, addUserForm[key]);
+                    }
+                  });
+                  try {
+                    const response = await fetch(`${baseUrl}/api/team/create/`, {
+                      method: "POST",
+                      headers: {
+                        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+                      },
+                      body: submitData,
+                    });
+                    if (response.ok) {
+                      setAddingUser(false);
+                      setAddUserForm({
+                        first_name: "",
+                        last_name: "",
+                        username: "",
+                        email: "",
+                        password: "",
+                        bio: "",
+                        github_link: "",
+                        profile_image: null,
+                        role: "user",
+                      });
+                      setAddUserError("");
+                      if (typeof fetchUsers === "function") fetchUsers();
+                    } else {
+                      const errorData = await response.json();
+                      setAddUserError(errorData.error || "Failed to add user");
+                    }
+                  } catch (error) {
+                    setAddUserError("Network error. Please try again.");
+                  } finally {
+                    setAddUserLoading(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                    <input
+                      type="text"
+                      name="first_name"
+                      value={addUserForm.first_name}
+                      onChange={e => setAddUserForm(f => ({ ...f, first_name: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                    <input
+                      type="text"
+                      name="last_name"
+                      value={addUserForm.last_name}
+                      onChange={e => setAddUserForm(f => ({ ...f, last_name: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={addUserForm.username}
+                      onChange={e => setAddUserForm(f => ({ ...f, username: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={addUserForm.email}
+                      onChange={e => setAddUserForm(f => ({ ...f, email: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={addUserForm.password}
+                    onChange={e => setAddUserForm(f => ({ ...f, password: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                  <textarea
+                    name="bio"
+                    value={addUserForm.bio}
+                    onChange={e => setAddUserForm(f => ({ ...f, bio: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                    placeholder="Tell us about this user..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">GitHub Link</label>
+                  <input
+                    type="url"
+                    name="github_link"
+                    value={addUserForm.github_link}
+                    onChange={e => setAddUserForm(f => ({ ...f, github_link: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                    placeholder="https://github.com/username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
+                  <input
+                    type="file"
+                    name="profile_image"
+                    accept="image/*"
+                    onChange={e => setAddUserForm(f => ({ ...f, profile_image: e.target.files[0] }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                    name="role"
+                    value={addUserForm.role}
+                    onChange={e => setAddUserForm(f => ({ ...f, role: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                </div>
+                <div className="flex space-x-4 pt-4">
+                  <button
+                    type="submit"
+                    disabled={addUserLoading}
+                    className="flex-1 bg-blush-pink text-white py-3 rounded-xl hover:bg-blush-pink/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addUserLoading ? "Saving..." : "Add User 🎉"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingUser(false);
+                      setAddUserError("");
+                    }}
+                    disabled={addUserLoading}
+                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full">
