@@ -120,11 +120,14 @@ const TeamMemberManager = () => {
 
     const submitData = new FormData()
 
-    // Add all form fields to FormData
+    // Add all form fields to FormData, but skip empty password on edit
     Object.keys(formData).forEach((key) => {
+      if (editing && key === "password" && !formData.password) {
+        return // Skip empty password on update
+      }
       if (key === "profile_image" && formData[key]) {
         submitData.append(key, formData[key])
-      } else if (key !== "profile_image") {
+      } else if (key !== "profile_image" && formData[key] !== null) {
         submitData.append(key, formData[key])
       }
     })
@@ -330,7 +333,7 @@ const TeamMemberManager = () => {
 
             {/* GitHub Link */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1"> Portfolio Link</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1"> GitHub Link</label>
               <input
                 type="url"
                 name="github_link"

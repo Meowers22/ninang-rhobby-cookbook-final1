@@ -274,7 +274,7 @@ const RecipesPage = () => {
             style={{ fontFamily: 'inherit' }}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            autoComplete="off"
+            autoComplete="off"g
           />
           <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -313,23 +313,27 @@ const RecipesPage = () => {
           🌟 Signature Dishes ({countSignature})
         </button>
 
-        <button
-          onClick={() => setFilter("approved")}
-          className={`px-4 py-2 rounded-full transition-colors ${
-            filter === "approved" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-          }`}
-        >
-          ✅ Approved ({countApproved})
-        </button>
+        {user && (
+          <>
+            <button
+              onClick={() => setFilter("approved")}
+              className={`px-4 py-2 rounded-full transition-colors ${
+                filter === "approved" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              ✅ Approved ({countApproved})
+            </button>
 
-        <button
-          onClick={() => setFilter("pending")}
-          className={`px-4 py-2 rounded-full transition-colors ${
-            filter === "pending" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-          }`}
-        >
-          ⏳ Pending ({countPending})
-        </button>
+            <button
+              onClick={() => setFilter("pending")}
+              className={`px-4 py-2 rounded-full transition-colors ${
+                filter === "pending" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              ⏳ Pending ({countPending})
+            </button>
+          </>
+        )}
 
         {/* Admin/Super Admin only filter for Declined */}
         {user && (user.role === "admin" || user.role === "super_admin") && (
