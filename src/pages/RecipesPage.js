@@ -187,10 +187,10 @@ const RecipesPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this recipe?")) return
     try {
-      const response = await fetch(`/api/recipes/${id}/`, {
+      const response = await fetch(`${baseUrl}/api/recipes/${id}/`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("access-token")}`,
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
         },
       })
       if (response.ok) {

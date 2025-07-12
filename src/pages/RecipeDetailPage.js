@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom"
+import { useMemo } from "react"
 import { useAuth } from "../contexts/AuthContext"
 import baseUrl from "../utils/baseUrl"
 
@@ -14,6 +15,13 @@ const RecipeDetailPage = () => {
   const [fetchError, setFetchError] = useState(null)
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  // Robustly detect fromAdmin context (state or query param)
+  const fromAdmin = useMemo(() => {
+    if (location.state && location.state.fromAdmin) return true;
+    if (location.search && location.search.includes('fromAdmin=1')) return true;
+    return false;
+  }, [location.state, location.search])
 
   useEffect(() => {
     console.log('RecipeDetailPage id param:', id)
@@ -120,7 +128,7 @@ const RecipeDetailPage = () => {
       <div className="text-center py-16">
         <div className="text-6xl mb-4">😔</div>
         <h2 className="text-2xl font-bold text-gray-800 mb-4">{fetchError}</h2>
-        <Link to="/recipes" className="text-blush-pink hover:underline">
+        <Link to={fromAdmin ? "/admin/dashboard" : "/recipes"} className="text-blush-pink hover:underline">
           Back to Recipes
         </Link>
       </div>
@@ -132,7 +140,7 @@ const RecipeDetailPage = () => {
       <div className="text-center py-16">
         <div className="text-6xl mb-4">😔</div>
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Recipe Not Found</h2>
-        <Link to="/recipes" className="text-blush-pink hover:underline">
+        <Link to={fromAdmin ? "/admin/dashboard" : "/recipes"} className="text-blush-pink hover:underline">
           Back to Recipes
         </Link>
       </div>
@@ -142,23 +150,37 @@ const RecipeDetailPage = () => {
   const scaledIngredients = scaleIngredients(recipe.ingredients, recipe.servings, servings)
   const canDelete = user && (user.role === "super_admin" || user.role === "admin" || recipe.author.id === user.id)
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this recipe?")) return
+  const handleDelete = async (deleteId) => {
+    if (!window.confirm("Are you sure you want to delete this recipe?")) return;
+    const token = localStorage.getItem("access_token");
+    console.log("Attempting to delete recipe ID:", deleteId);
+    console.log("Token used:", token);
     try {
-      const response = await fetch(`/api/recipes/${id}/`, {
+      const response = await fetch(`${baseUrl}/api/recipes/${deleteId}/`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Authorization": `Bearer ${token}`,
         },
-      })
+      });
       if (response.ok) {
-        alert("Recipe deleted successfully.")
-        navigate("/recipes")
+        alert("Recipe deleted successfully.");
+        navigate("/recipes");
+      } else if (response.status === 404) {
+        alert("Recipe not found or you do not have permission to delete it.");
+        navigate("/recipes");
       } else {
-        alert("Failed to delete recipe.")
+        let errorMsg = `Failed to delete recipe. Status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) errorMsg += ` | ${errorData.error}`;
+          console.log("Delete error response:", errorData);
+        } catch (e) {
+          console.log("Delete error: Could not parse error response", e);
+        }
+        alert(errorMsg);
       }
     } catch (error) {
-      alert("An error occurred while deleting the recipe.")
+      alert(error.message || "An error occurred while deleting the recipe.");
     }
   }
 
@@ -325,9 +347,13 @@ const RecipeDetailPage = () => {
                   </button>
                 )}
 
-              {canDelete && (
+              {canDelete && recipe && recipe.id && (
                 <button
-                  onClick={handleDelete}
+                  onClick={() => {
+                    console.log("Delete button clicked. Recipe object:", recipe);
+                    console.log("Recipe ID used for delete:", recipe.id);
+                    handleDelete(recipe.id);
+                  }}
                   className="bg-red-500 text-white px-4 py-2 rounded-xl mt-6 hover:bg-red-600 transition-colors"
                 >
                   🗑️ Delete Recipe

@@ -6,6 +6,8 @@ import { useWebSocket } from "../contexts/WebSocketContext"
 import RecipeCard from "../components/RecipeCard"
 import baseUrl from "../utils/baseUrl"
 
+import { Link, useNavigate } from "react-router-dom"
+
 const AdminDashboard = () => {
   // ==================== STATE MANAGEMENT ====================
   const [recipes, setRecipes] = useState([])
@@ -22,6 +24,9 @@ const AdminDashboard = () => {
     github_link: "",
     role: "user",
   })
+  // Recipe search and filter state
+  const [filter, setFilter] = useState("all") // all, signature, pending, approved, declined
+  const [searchTerm, setSearchTerm] = useState("")
   // Add User Inline Form State (TeamMemberManager style)
   const [addingUser, setAddingUser] = useState(false)
   const [addUserForm, setAddUserForm] = useState({
@@ -40,6 +45,7 @@ const AdminDashboard = () => {
 
   const { user } = useAuth()
   const { lastMessage } = useWebSocket()
+  const navigate = useNavigate()
 
   // ==================== EFFECTS ====================
 
@@ -176,10 +182,34 @@ const AdminDashboard = () => {
   }
 
   /**
+   * Delete a recipe (Admin/Super Admin only)
+   */
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this recipe?")) return
+    try {
+      const response = await fetch(`${baseUrl}/api/recipes/${id}/`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      })
+      if (response.ok) {
+        alert("Recipe deleted successfully.")
+        // Optionally refresh the recipe list here
+        fetchRecipes()
+      } else {
+        alert("Failed to delete recipe.")
+      }
+    } catch (error) {
+      alert("An error occurred while deleting the recipe.")
+    }
+  }
+
+  /**
    * Navigate to edit recipe page
    */
   const handleEdit = (recipeId) => {
-    window.location.href = `/recipes/${recipeId}/edit`
+    navigate(`/recipes/${recipeId}/edit`)
   }
 
   /**
@@ -424,88 +454,139 @@ const AdminDashboard = () => {
       {/* Tab Content */}
       {activeTab === "recipes" && (
         <div className="space-y-8">
-          {/* Pending Recipes Section */}
-          {pendingRecipes.length > 0 && (
-            <section>
-              <h2 className="text-2xl font-playfair font-bold text-gray-800 mb-4">
-                ⏳ Pending Approval ({pendingRecipes.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingRecipes.map((recipe) => (
-                  <RecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    showActions={true}
-                    onApprove={handleApprove}
-                    onDecline={handleDecline}
-                    onToggleSignature={handleToggleSignature}
-                    onEdit={handleEdit}
-                    onPhotoUpdate={handlePhotoUpdate}
-                    onRefresh={fetchRecipes}
-                  />
-                ))}
+          {/* All Recipes Header, Search, and Filters */}
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8 gap-4">
+            <div>
+              <h2 className="text-3xl font-playfair font-bold text-gray-800 mb-2">All Recipes 📚</h2>
+            </div>
+            <div className="flex flex-col md:flex-row items-end gap-4 flex-1 justify-end min-w-[250px] max-w-md">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Search recipes..."
+                  className="w-full px-6 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blush-pink focus:border-transparent shadow-sm text-lg font-playfair transition-all pr-12"
+                  style={{ fontFamily: 'inherit' }}
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  autoComplete="off"
+                />
+                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                </span>
               </div>
-            </section>
-          )}
-
-          {/* Approved Recipes Section */}
-          <section>
-            <h2 className="text-2xl font-playfair font-bold text-gray-800 mb-4">
-              ✅ Approved Recipes ({approvedRecipes.length})
-            </h2>
-            {approvedRecipes.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {approvedRecipes.slice(0, 6).map((recipe) => (
-                    <RecipeCard
-                      key={recipe.id}
-                      recipe={recipe}
-                      showActions={true}
-                      onApprove={handleApprove}
-                      onDecline={handleDecline}
-                      onToggleSignature={handleToggleSignature}
-                      onEdit={handleEdit}
-                      onPhotoUpdate={handlePhotoUpdate}
-                      onRefresh={fetchRecipes}
-                    />
-                  ))}
-                </div>
-                {approvedRecipes.length > 6 && (
-                  <div className="text-center mt-6">
-                    <p className="text-gray-600">Showing 6 of {approvedRecipes.length} approved recipes</p>
-                  </div>
-                )}
-              </>
+            
+            </div>
+          </div>
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            <button
+              onClick={() => setFilter("all")}
+              className={`px-4 py-2 rounded-full transition-colors ${
+                filter === "all" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              All Recipes ({recipes.length})
+            </button>
+            <button
+              onClick={() => setFilter("signature")}
+              className={`px-4 py-2 rounded-full transition-colors ${
+                filter === "signature" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              🌟 Signature Dishes ({recipes.filter((r) => r.is_signature).length})
+            </button>
+            <button
+              onClick={() => setFilter("approved")}
+              className={`px-4 py-2 rounded-full transition-colors ${
+                filter === "approved" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              ✅ Approved ({recipes.filter((r) => r.status === "approved").length})
+            </button>
+            <button
+              onClick={() => setFilter("pending")}
+              className={`px-4 py-2 rounded-full transition-colors ${
+                filter === "pending" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              ⏳ Pending ({recipes.filter((r) => r.status === "pending").length})
+            </button>
+            <button
+              onClick={() => setFilter("declined")}
+              className={`px-4 py-2 rounded-full transition-colors ${
+                filter === "declined" ? "bg-blush-pink text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              ❌ Declined ({recipes.filter((r) => r.status === "declined").length})
+            </button>
+          </div>
+          {/* Unified Recipe Grid with Filtering and Search */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recipes.filter((recipe) => {
+              let matchesFilter = true;
+              switch (filter) {
+                case "signature":
+                  matchesFilter = recipe.is_signature;
+                  break;
+                case "pending":
+                  matchesFilter = recipe.status === "pending";
+                  break;
+                case "approved":
+                  matchesFilter = recipe.status === "approved";
+                  break;
+                case "declined":
+                  matchesFilter = recipe.status === "declined";
+                  break;
+                default:
+                  matchesFilter = true;
+              }
+              const matchesSearch = !searchTerm.trim() ||
+                recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (recipe.description && recipe.description.toLowerCase().includes(searchTerm.toLowerCase()));
+              return matchesFilter && matchesSearch;
+            }).length > 0 ? (
+              recipes.filter((recipe) => {
+                let matchesFilter = true;
+                switch (filter) {
+                  case "signature":
+                    matchesFilter = recipe.is_signature;
+                    break;
+                  case "pending":
+                    matchesFilter = recipe.status === "pending";
+                    break;
+                  case "approved":
+                    matchesFilter = recipe.status === "approved";
+                    break;
+                  case "declined":
+                    matchesFilter = recipe.status === "declined";
+                    break;
+                  default:
+                    matchesFilter = true;
+                }
+                const matchesSearch = !searchTerm.trim() ||
+                  recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (recipe.description && recipe.description.toLowerCase().includes(searchTerm.toLowerCase()));
+                return matchesFilter && matchesSearch;
+              }).map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  showActions={true}
+                  onApprove={handleApprove}
+                  onDecline={handleDecline}
+                  onToggleSignature={handleToggleSignature}
+                  onEdit={handleEdit}
+                  onPhotoUpdate={handlePhotoUpdate}
+                  onRefresh={fetchRecipes}
+                  onDelete={handleDelete}
+                />
+              ))
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-600">No approved recipes yet.</p>
-              </div>
+              <div className="col-span-full text-center text-gray-400 italic py-12">No recipes found.</div>
             )}
-          </section>
-
-          {/* Declined Recipes Section */}
-          {declinedRecipes.length > 0 && (
-            <section>
-              <h2 className="text-2xl font-playfair font-bold text-gray-800 mb-4">
-                ❌ Declined Recipes ({declinedRecipes.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {declinedRecipes.slice(0, 3).map((recipe) => (
-                  <RecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    showActions={true}
-                    onApprove={handleApprove}
-                    onDecline={handleDecline}
-                    onToggleSignature={handleToggleSignature}
-                    onEdit={handleEdit}
-                    onPhotoUpdate={handlePhotoUpdate}
-                    onRefresh={fetchRecipes}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+          </div>
         </div>
       )}
 
@@ -659,7 +740,7 @@ const AdminDashboard = () => {
                     onChange={e => setAddUserForm(f => ({ ...f, bio: e.target.value }))}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blush-pink focus:border-transparent"
-                    placeholder="Tell us about this user..."
+                    placeholder="Example: Cloud chef aspiring to architect delicious solutions, blending AWS skills with a passion for recipes."
                   />
                 </div>
                 <div>

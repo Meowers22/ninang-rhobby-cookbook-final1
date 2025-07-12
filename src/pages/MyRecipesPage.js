@@ -168,23 +168,35 @@ const MyRecipesPage = () => {
     }
   }
 
+  const [deletingId, setDeletingId] = useState(null);
   const handleDelete = async (recipeId) => {
-    if (!window.confirm("Are you sure you want to delete this recipe?")) return
+    if (!window.confirm("Are you sure you want to delete this recipe?")) return;
+    setDeletingId(recipeId);
     try {
       const response = await fetch(`${baseUrl}/api/recipes/${recipeId}/`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
-      })
+      });
       if (response.ok) {
-        setRecipes((prev) => prev.filter((r) => r.id !== recipeId))
-        toast({ title: "Recipe deleted!", description: "Your recipe was deleted successfully.", variant: "default" })
+        setRecipes((prev) => prev.filter((r) => r.id !== recipeId));
+        toast({ title: "Recipe deleted!", description: "Your recipe was deleted successfully.", variant: "default" });
       } else {
-        toast({ title: "Failed to delete recipe", description: "Failed to delete recipe.", variant: "destructive" })
+        let errorMsg = `Failed to delete recipe. Status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) errorMsg += ` | ${errorData.error}`;
+          console.log("Delete error response:", errorData);
+        } catch (e) {
+          console.log("Delete error: Could not parse error response", e);
+        }
+        toast({ title: "Failed to delete recipe", description: errorMsg, variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Error", description: "An error occurred while deleting the recipe.", variant: "destructive" })
+      toast({ title: "Error", description: error.message || "An error occurred while deleting the recipe.", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
     }
   }
 

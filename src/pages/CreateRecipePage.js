@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import baseUrl from "../utils/baseUrl"
 
@@ -18,6 +18,7 @@ const CreateRecipePage = () => {
   const [errors, setErrors] = useState({})
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   if (!user) {
     navigate("/login")
@@ -80,7 +81,12 @@ const CreateRecipePage = () => {
 
       if (response.ok) {
         const recipe = await response.json()
-        navigate(`/recipes/${recipe.id}`)
+        if (location.state && location.state.fromAdmin) {
+          // Use query param for robust context passing
+          navigate(`/recipes/${recipe.id}?fromAdmin=1`)
+        } else {
+          navigate(`/recipes/${recipe.id}`)
+        }
       } else {
         const errorData = await response.json()
         setErrors(errorData)
