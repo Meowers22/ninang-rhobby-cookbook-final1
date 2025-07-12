@@ -214,12 +214,45 @@ const HomePage = () => {
           <p className="text-gray-600 mb-6">
             Join our family and share the recipes that make your heart (and stomach) happy!
           </p>
-          <Link
-            to="/recipes/create"
-            className="bg-blush-pink text-white px-8 py-3 rounded-full text-lg hover:bg-blush-pink/80 transition-colors inline-block"
-          >
-            Share Your Recipe, Anak! 🍽️
-          </Link>
+          {/* Auth-aware Share Recipe Button */}
+          {(() => {
+            try {
+              // Dynamically require useAuth to avoid hook call in non-component scope
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const { useAuth } = require("../contexts/AuthContext");
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const { user } = useAuth();
+              if (user) {
+                return (
+                  <Link
+                    to="/recipes/create"
+                    className="bg-blush-pink text-white px-8 py-3 rounded-full text-lg hover:bg-blush-pink/80 transition-colors inline-block"
+                  >
+                    Share Your Recipe, Anak! 🍽️
+                  </Link>
+                );
+              } else {
+                return (
+                  <Link
+                    to="/register"
+                    className="bg-blush-pink text-white px-8 py-3 rounded-full text-lg hover:bg-blush-pink/80 transition-colors inline-block"
+                  >
+                    Register to Share Your Recipe! 🍽️
+                  </Link>
+                );
+              }
+            } catch {
+              // Fallback if useAuth is not available
+              return (
+                <Link
+                  to="/register"
+                  className="bg-blush-pink text-white px-8 py-3 rounded-full text-lg hover:bg-blush-pink/80 transition-colors inline-block"
+                >
+                  Register to Share Your Recipe! 🍽️
+                </Link>
+              );
+            }
+          })()}
         </div>
       </section>
     </div>
